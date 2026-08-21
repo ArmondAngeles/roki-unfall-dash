@@ -12,6 +12,7 @@ output:
         google: Prompt
       heading_font:
         google: Sen
+output_file: "index.html"        
 ---
 
 
@@ -189,7 +190,7 @@ total_severe <- sum(roki_clean$severity == "Severe Injury", na.rm = TRUE)
 total_slight <- sum(roki_clean$severity == "Slight Injury", na.rm = TRUE)
 ```
 
-Row {data-height=5}
+Row {data-height=1}
 -----------------------------------------------------------------------
 
 ### Fatalities {.value-box}
@@ -291,7 +292,7 @@ leaflet(sd) %>%
 ```
 
 
-Row {data-height=15}
+Row {data-height=19}
 -------------------------------------
 
 ### Interactive Bar Chart
@@ -304,47 +305,86 @@ library(ggplot2)
 library(plotly)
 library(dplyr)
 
-# 1. Convert the shared data directly to a standard base data frame 
-# This completely strips away the sf class and prevents any mutate/format errors
+# 1. Extract plain data frame and drop sf geometry class safely
 df_clean <- as.data.frame(sd$data(), stringsAsFactors = FALSE)
 
 # 2. Count accidents using your existing Months column safely
 monthly_counts <- df_clean %>%
   count(Months, name = "total")
 
-# 3. Build a crisp, high-contrast ggplot
+# 3. Build ggplot with rotated x-axis labels
 p <- ggplot(monthly_counts, aes(x = Months, y = total, text = paste("Month:", Months, "<br>Accidents:", total))) +
   geom_col(fill = "#38bdf8", width = 0.7) +
   labs(
     title = "Verkehrsunfälle pro Monat (von 2022 bis 2025)",
     x = "Monat",
-    y = "Anzahl der Verkehrsunfälle "
+    y = "Anzahl der Verkehrsunfälle"
   ) +
   theme_minimal(base_size = 12) +
   theme(
-    plot.title = element_text(color = "#2c3e50", face = "bold", size = 14),
+    plot.title = element_text(color = "#2c3e50", face = "bold", size = 13),
     axis.title = element_text(color = "#2c3e50", face = "bold", size = 11),
     axis.text = element_text(color = "#2c3e50", size = 10),
-    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 0.5), # Tilted 90 degrees
     panel.grid.major = element_line(color = "#e2e8f0", linewidth = 0.5),
     panel.grid.minor = element_blank(),
     plot.background = element_rect(fill = "transparent", color = NA),
     panel.background = element_rect(fill = "transparent", color = NA)
   )
 
-# 4. Convert to interactive plotly widget while preserving Crosstalk linkage
+# 4. Convert to interactive plotly widget
 ggplotly(p, tooltip = "text") %>%
   config(displayModeBar = FALSE) %>%
   layout(
     paper_bgcolor = "transparent",
-    plot_bgcolor = "transparent"
+    plot_bgcolor = "transparent",
+    margin = list(b = 80) # Adds bottom margin space for the rotated labels
   )
 
 ```
 
 
+### Pie-Chart
+
+```{r}
+
+library(plotly)
+library(dplyr)
+
+# 1. Convert roki_clean to a standard data frame directly
+df_pie <- as.data.frame(roki_clean, stringsAsFactors = FALSE)
+
+# 2. Count frequencies using the existing traffic_accident factor
+accident_counts <- df_pie %>%
+  count(traffic_accident, name = "count")
+
+# 3. Render a native interactive Plotly pie chart with optimized margins
+plot_ly(
+    accident_counts,
+    labels = ~traffic_accident,
+    values = ~count,
+    type = "pie",
+    textinfo = "label+percent",
+    hoverinfo = "text",
+    text = ~paste(traffic_accident, "<br>Count:", count),
+    marker = list(colors = c("#38bdf8", "#0284c7", "#0369a1", "#bae6fd", "#7dd3fc"))
+  ) %>%
+  layout(
+    title = list(
+      text = "<b>Unfallarten</b>",
+      font = list(color = "#2c3e50", size = 15),
+      x = 0.5
+    ),
+    paper_bgcolor = "transparent",
+    plot_bgcolor = "transparent",
+    showlegend = TRUE,
+    legend = list(font = list(color = "#2c3e50", size = 10), orientation = "v"),
+    margin = list(t = 50, b = 30, l = 30, r = 30)
+  ) %>%
+  config(displayModeBar = FALSE)
 
 
+```
 
 
 
