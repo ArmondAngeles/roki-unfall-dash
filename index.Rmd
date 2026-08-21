@@ -316,9 +316,9 @@ monthly_counts <- df_clean %>%
 p <- ggplot(monthly_counts, aes(x = Months, y = total, text = paste("Month:", Months, "<br>Accidents:", total))) +
   geom_col(fill = "#38bdf8", width = 0.7) +
   labs(
-    title = "Accidents by Month",
-    x = "Month",
-    y = "Number of Accidents"
+    title = "Verkehrsunfälle pro Monat (von 2022 bis 2025)",
+    x = "Monat",
+    y = "Anzahl der Verkehrsunfälle "
   ) +
   theme_minimal(base_size = 12) +
   theme(
