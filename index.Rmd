@@ -2,7 +2,7 @@
 title: "Rodenkirchen Straßenunfälle Dashboard"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: rows
     vertical_layout: fill
     fig_mobile: TRUE
     theme: 
@@ -29,10 +29,10 @@ load("roki_dashboard_data.RData")
 
 # 1. Transform spatial data from local CRS (EPSG:25832) to WGS84 (EPSG:4326) for Leaflet
 # Ensure roki_clean is loaded in your environment (e.g., loaded from a GeoPackage or RDS file)
-roki_clean <- st_transform(roki_clean, 4326)
+roki_clean1 <- st_transform(roki_clean, 4326)
 
 # 2. Wrap the sf object in SharedData for client-side filtering without a Shiny server
-sd <- SharedData$new(roki_clean)
+sd <- SharedData$new(roki_clean1)
 ```
 
 
@@ -176,12 +176,60 @@ Created by **Armond Angeles** (*Raster Ninja*).
   <strong>Data Source:</strong> <a href="https://www.opengeodata.nrw.de/produkte/" target="_blank" style="color: #38bdf8; text-decoration: none;">OpenGeodata NRW</a>
 </div>
 
-Column {data-width=800}
+
+```{r}
+# load the data from the directory:
+
+load("roki_dashboard_data.RData")
+
+# Example summary variables based on your dataset columns
+# (Adjust column names like `sektion` or `severity` to match your actual dataset)
+total_fatalities <- sum(roki_clean$severity == "Fatal", na.rm = TRUE)
+total_severe <- sum(roki_clean$severity == "Severe Injury", na.rm = TRUE)
+total_slight <- sum(roki_clean$severity == "Slight Injury", na.rm = TRUE)
+```
+
+Row {data-height=5}
+-----------------------------------------------------------------------
+
+### Fatalities {.value-box}
+```{r}
+
+
+valueBox(
+  value = total_fatalities,
+  caption = "Getötete (Todesfälle)",
+  icon = "fa-exclamation-triangle",
+  color = "danger"
+)
+```
+
+### Severe Injuries
+```{r}
+valueBox(
+  value = total_severe,
+  caption = "Schwerverletzte",
+  icon = "fa-user-injured",
+  color = "warning"
+)
+```
+
+### Slight Injuries
+```{r}
+valueBox(
+  value = total_slight,
+  caption = "Leichtverletzte",
+  icon = "fa-user",
+  color = "info"
+)
+```
+
+
+
+Row {data-height=80}
 -------------------------------------
 
-
-### 
-
+### Accident Map
 ```{r echo=FALSE}
 
 leaflet(sd) %>%
@@ -243,9 +291,56 @@ leaflet(sd) %>%
 ```
 
 
+Row {data-height=15}
+-------------------------------------
 
+### Interactive Bar Chart
+```{r}
 
+library(ggplot2)
+library(plotly)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(dplyr)
 
+# 1. Convert the shared data directly to a standard base data frame 
+# This completely strips away the sf class and prevents any mutate/format errors
+df_clean <- as.data.frame(sd$data(), stringsAsFactors = FALSE)
+
+# 2. Count accidents using your existing Months column safely
+monthly_counts <- df_clean %>%
+  count(Months, name = "total")
+
+# 3. Build a crisp, high-contrast ggplot
+p <- ggplot(monthly_counts, aes(x = Months, y = total, text = paste("Month:", Months, "<br>Accidents:", total))) +
+  geom_col(fill = "#38bdf8", width = 0.7) +
+  labs(
+    title = "Accidents by Month",
+    x = "Month",
+    y = "Number of Accidents"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(color = "#2c3e50", face = "bold", size = 14),
+    axis.title = element_text(color = "#2c3e50", face = "bold", size = 11),
+    axis.text = element_text(color = "#2c3e50", size = 10),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    panel.grid.major = element_line(color = "#e2e8f0", linewidth = 0.5),
+    panel.grid.minor = element_blank(),
+    plot.background = element_rect(fill = "transparent", color = NA),
+    panel.background = element_rect(fill = "transparent", color = NA)
+  )
+
+# 4. Convert to interactive plotly widget while preserving Crosstalk linkage
+ggplotly(p, tooltip = "text") %>%
+  config(displayModeBar = FALSE) %>%
+  layout(
+    paper_bgcolor = "transparent",
+    plot_bgcolor = "transparent"
+  )
+
+```
 
 
 
